@@ -25,6 +25,8 @@ monoRight = pipeline.create(dai.node.MonoCamera)
 edgeDetectorLeft = pipeline.create(dai.node.EdgeDetector)
 edgeDetectorRight = pipeline.create(dai.node.EdgeDetector)
 edgeDetectorRgb = pipeline.create(dai.node.EdgeDetector)
+myStereoDepth = pipeline.create(dai.node.StereoDepth)
+
 #ColorRgb = pipeline.create(dai.node.ColorCamera)
 
 xoutEdgeLeft = pipeline.create(dai.node.XLinkOut)
@@ -32,18 +34,21 @@ xoutEdgeRight = pipeline.create(dai.node.XLinkOut)
 xoutEdgeRgb = pipeline.create(dai.node.XLinkOut)
 xinEdgeCfg = pipeline.create(dai.node.XLinkIn)
 xoutColorRgb = pipeline.create(dai.node.XLinkOut)
+xoutStereoDepth = pipeline.create(dai.node.XLinkOut)
 
 edgeLeftStr = "edge left"
 edgeRightStr = "edge right"
 edgeRgbStr = "edge rgb"
 edgeCfgStr = "edge cfg"
 ColorStr = "color"
+StereoDepthString = "Stereo"
 
 xoutEdgeLeft.setStreamName(edgeLeftStr)
 xoutEdgeRight.setStreamName(edgeRightStr)
 xoutEdgeRgb.setStreamName(edgeRgbStr)
 xinEdgeCfg.setStreamName(edgeCfgStr)
 xoutColorRgb.setStreamName(ColorStr)
+xoutStereoDepth.setStreamName(StereoDepthString)
 # Properties
 camRgb.setBoardSocket(dai.CameraBoardSocket.CAM_A)
 camRgb.setResolution(dai.ColorCameraProperties.SensorResolution.THE_1080_P)
@@ -55,11 +60,17 @@ monoRight.setCamera("right")
 
 edgeDetectorRgb.setMaxOutputFrameSize(camRgb.getVideoWidth() * camRgb.getVideoHeight())
 
+
+#preparing stereo
+myStereoDepth.setDefaultProfilePreset(dai.node.StereoDepth.PresetMode.HIGH_DENSITY)
+myStereoDepth.disparity.link(xoutStereoDepth.input)
 # Linking
 monoLeft.out.link(edgeDetectorLeft.inputImage)
 monoRight.out.link(edgeDetectorRight.inputImage)
 camRgb.video.link(edgeDetectorRgb.inputImage)
 
+monoLeft.out.link(myStereoDepth.left)
+monoRight.out.link(myStereoDepth.right)
 
 edgeDetectorLeft.outputImage.link(xoutEdgeLeft.input)
 edgeDetectorRight.outputImage.link(xoutEdgeRight.input)
@@ -80,7 +91,7 @@ with dai.Device(pipeline) as device:
     edgeCfgQueue = device.getInputQueue(edgeCfgStr)
 
     print("Switch between sobel filter kernels using keys '1' and '2'")
-    qList = [device.getOutputQueue(stream, 8, blocking=False) for stream in ['edge left', 'edge right', 'edge rgb', 'color']]
+    qList = [device.getOutputQueue(stream, 8, blocking=False) for stream in ['edge left', 'edge right', 'edge rgb', 'color',StereoDepthString]]
     counter=1
     while(True):
 
